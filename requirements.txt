@@ -1,0 +1,7 @@
+numpy<2
+torch
+torchvision
+transformers
+streamlit
+pandas
+fasttext-wheel; python_version < "3.13"
