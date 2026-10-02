@@ -1,50 +1,182 @@
 # AI Formality Checker
 
-Đây là một dự án ứng dụng Trí tuệ Nhân tạo để phân loại sắc thái văn bản tiếng Anh. Ứng dụng đánh giá xem một câu văn tiếng Anh mang sắc thái **Trang trọng (Formal)** hay **Suồng sã (Informal)**. Giao diện người dùng được xây dựng trực quan bằng **Streamlit**.
+AI Formality Checker is a Streamlit application that classifies English sentences as **Formal** or **Informal**. It provides a simple web interface and supports three trained text-classification models:
 
-## Các mô hình AI được hỗ trợ
+- **RoBERTa** - the highest-accuracy option, with comparatively slower inference.
+- **DistilBERT** - a smaller Transformer model that balances speed and accuracy.
+- **FastText** - a lightweight, CPU-friendly option with very fast inference.
 
-Hệ thống cho phép bạn tùy chọn 1 trong 3 mô hình AI tùy theo nhu cầu:
-1. **RoBERTa (Chậm - Độ chính xác cao nhất)**: Dựa trên kiến trúc Transformer mạnh mẽ, cho kết quả chính xác nhất.
-2. **DistilBERT (Cân bằng Tốc độ & Chính xác)**: Phiên bản tối ưu hóa của BERT, cho tốc độ dự đoán nhanh hơn với độ chính xác xấp xỉ.
-3. **FastText (Siêu tốc - Phù hợp CPU)**: Tốc độ suy luận cực nhanh, tốn ít tài nguyên, rất phù hợp khi chạy trên các thiết bị không có GPU. *(Yêu cầu Python <= 3.12)*.
+The repository also contains the data preparation, training, and evaluation notebooks used to build and compare the models on the GYAFC formality dataset.
 
-## 🛠 Yêu cầu hệ thống
+## Features
 
-- **Python**: Phiên bản 3.8 trở lên.
-  *Lưu ý: Thư viện `fasttext` hiện tại không hỗ trợ Python 3.13+. Nếu bạn muốn sử dụng mô hình FastText, hãy đảm bảo môi trường Python của bạn từ **3.12 trở xuống**. Nếu dùng Python 3.13+, ứng dụng vẫn chạy bình thường với RoBERTa và DistilBERT.*
-- **Mô hình**: Các mô hình đã huấn luyện cần được đặt sẵn trong thư mục `models/` (bao gồm `best_roberta_formality`, `best_distilbert_formality`, và `best_fasttext_formality.bin`).
+- Classify a single English sentence as Formal or Informal.
+- Display the predicted label, confidence score, and the top-two class scores.
+- Select the inference model from the model selector.
+- Automatically hide FastText when the current Python version cannot install the optional FastText dependency.
+- Cache the loaded model with Streamlit so it is not reloaded on every interaction.
+- Train and evaluate RoBERTa, DistilBERT, and FastText through the included notebooks.
 
-##  Hướng dẫn cài đặt và chạy ứng dụng
+## How it works
 
-**Bước 1: Mở terminal tại thư mục gốc của dự án.**
+1. The application loads the selected local model through `src/predictor.py`.
+2. RoBERTa and DistilBERT use Hugging Face text-classification pipelines.
+3. FastText uses its native model API and maps `__label__1` to `Formal`.
+4. The prediction is normalized to the labels `Formal` and `Informal`.
+5. The interface displays the predicted class, confidence, and both class scores.
 
-**Bước 2: (Khuyến nghị) Tạo và kích hoạt môi trường ảo (virtual environment).**
+The classifier uses the following label mapping:
+
+| Numeric/model label | Application label |
+| --- | --- |
+| `0` or `__label__0` | `Informal` |
+| `1` or `__label__1` | `Formal` |
+
+## Requirements
+
+- Python 3.8 or newer.
+- A local copy of the trained model artifacts.
+- A CPU is sufficient for inference. A CUDA-enabled PyTorch installation can be used when available, especially during training.
+
+FastText is optional. The `fasttext-wheel` dependency is installed only for Python versions below 3.13 because the current FastText package used by this project does not support Python 3.13 and newer. RoBERTa and DistilBERT remain available without FastText.
+
+## Model files
+
+The application expects the following directories and file:
+
+```text
+models/
+├── best_roberta_formality/
+├── best_distilbert_formality/
+└── best_fasttext_formality.bin
+```
+
+The two Transformer directories should contain the model weights, configuration, and tokenizer files produced by Hugging Face Transformers. The FastText file must be a trained `.bin` model.
+
+The `models/` directory is ignored by Git, so trained artifacts are not included in the repository. Place the artifacts in the paths above before starting the application. If only RoBERTa and DistilBERT are available, the application can still run with those two models.
+
+## Installation
+
+Open a terminal in the repository root and create a virtual environment:
+
 ```bash
 python -m venv venv
+```
 
-# Kích hoạt trên Windows:
-venv\Scripts\activate
+Activate it on Windows:
 
-# Kích hoạt trên macOS/Linux:
+```powershell
+venv\Scripts\Activate.ps1
+```
+
+Activate it on macOS or Linux:
+
+```bash
 source venv/bin/activate
 ```
 
-**Bước 3: Cài đặt các thư viện phụ thuộc.**
+Install the project dependencies:
+
 ```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-**Bước 4: Khởi chạy ứng dụng Streamlit.**
+## Run the application
+
+Run the command from the repository root so that the relative `models/` paths resolve correctly:
+
 ```bash
 streamlit run app.py
 ```
 
-Sau khi chạy lệnh trên, trình duyệt của bạn sẽ tự động mở trang web (thông thường tại địa chỉ `http://localhost:8501`). Bạn chỉ cần nhập một câu tiếng Anh vào hộp thoại và bấm **"🔍 AI Phân tích ngay!"** để xem kết quả đánh giá mức độ trang trọng của câu văn.
+Streamlit normally opens the application at [http://localhost:8501](http://localhost:8501). Enter an English sentence, choose a model, and select **Analyze with AI** to see the result.
 
-##  Cấu trúc dự án cơ bản
+For example:
 
-- `app.py`: File khởi chạy giao diện web chính bằng Streamlit.
-- `src/predictor.py`: Chứa class `FormalityPredictor` với logic tải mô hình (`roberta`, `distilbert`, `fasttext`) và xử lý dữ liệu để đưa ra dự đoán.
-- `models/`: Thư mục lưu trữ các file mô hình đã được fine-tune/huấn luyện trước.
-- `requirements.txt`: Danh sách các package Python cần thiết để dự án hoạt động trơn tru.
+```text
+Input: u should totally check out that new movie lol
+Output: Informal
+```
+
+## Training and evaluation workflow
+
+The notebooks document the complete machine-learning workflow:
+
+| Notebook | Purpose |
+| --- | --- |
+| `notebook/01_EDA_preprocessing.ipynb` | Explore the GYAFC data and prepare Transformer-ready data. |
+| `notebook/02_RoBERTa.ipynb` | Fine-tune and save the RoBERTa classifier. |
+| `notebook/03_DistilBERT.ipynb` | Fine-tune and save the DistilBERT classifier. |
+| `notebook/04_FastText.ipynb` | Prepare FastText-format data and train the FastText classifier. |
+| `notebook/05_Evaluation.ipynb` | Compare the trained models on the official GYAFC test set. |
+| `notebook/KHDL.ipynb` | An additional end-to-end exploration and preprocessing notebook. |
+
+The prepared datasets are stored under `data/`:
+
+- `gyafc_dataset_train_full.csv` - combined labeled training data.
+- `gyafc_ready_to_train.csv` - cleaned training data for the general preprocessing workflow.
+- `gyafc_transformer_ready.csv` - cleaned data used by the Transformer notebooks.
+- `gyafc_test_ready.csv` - prepared official test data.
+- `fasttext_train.txt` and `fasttext_test.txt` - FastText-formatted training and test files.
+- `*.src` and `*.tgt` - source and target text files used during dataset preparation.
+
+The Transformer notebooks train on the prepared training data and evaluate against `gyafc_test_ready.csv`. The evaluation notebook reports accuracy, precision, recall, F1 score, and confusion matrices for the supported models.
+
+### Training dependencies
+
+The Streamlit application only needs the packages in `requirements.txt`. To run the training notebooks, additional packages may be required, including:
+
+```bash
+pip install datasets evaluate accelerate scikit-learn matplotlib seaborn jupyter
+```
+
+Training large Transformer models is substantially more resource-intensive than running inference. A CUDA-enabled environment is recommended when available.
+
+## Project structure
+
+```text
+.
+├── app.py                         # Streamlit entry point
+├── requirements.txt               # Runtime dependencies
+├── src/
+│   └── predictor.py               # Model loading and prediction logic
+├── models/                        # Local trained model artifacts (ignored by Git)
+├── data/                          # Prepared datasets and FastText files
+└── notebook/                      # EDA, training, and evaluation notebooks
+```
+
+## Troubleshooting
+
+### `FileNotFoundError` when starting the app
+
+Make sure the expected model files exist under `models/` and start Streamlit from the repository root:
+
+```bash
+streamlit run app.py
+```
+
+### FastText is not listed
+
+FastText is disabled when it cannot be imported. Use Python 3.12 or earlier and reinstall the dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+RoBERTa and DistilBERT do not depend on FastText.
+
+### DistilBERT input errors
+
+The project includes a custom `_DistilBertPipeline` that removes unsupported `token_type_ids` before calling the DistilBERT model. Use the project predictor instead of constructing a standard pipeline without this compatibility layer.
+
+## Limitations
+
+- The application classifies English text only.
+- Predictions depend on the quality and domain of the GYAFC training data.
+- Model artifacts are required locally and are not downloaded automatically.
+- The repository does not include a separate automated test suite; the evaluation notebook is the primary model validation workflow.
+
+## License and dataset
+
+No license file is currently included in this repository. Review and add an appropriate project license before redistributing the code or trained artifacts. The training and evaluation data are based on the GYAFC formality corpus; follow the corpus terms and citation requirements when using or sharing the data.
